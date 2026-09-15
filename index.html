@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>午餐分帳系統入口</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-orange-100 via-yellow-50 to-blue-100 flex items-center justify-center min-h-screen font-sans">
+  <div class="bg-white p-8 rounded-2xl shadow-xl w-[420px] text-center">
+    <h1 class="text-3xl font-bold text-orange-500 mb-6">🍱 午餐分帳系統</h1>
+    <p class="text-gray-600 mb-6">請選擇模式：</p>
+    <div class="space-y-4">
+      <!-- 開團第一步 -->
+      <button onclick="location.href='admin_menu.html'" class="w-full px-6 py-3 bg-orange-500 text-white rounded-lg font-bold shadow hover:bg-orange-600">👑 團主開團與點餐</button>
+
+      <!-- 其他功能 -->
+      <button onclick="location.href='mode2.html'" class="w-full px-6 py-3 bg-blue-400 text-white rounded-lg font-medium shadow hover:bg-blue-500">🍔 外送群組明細</button>
+      <button onclick="location.href='mode3.html'" class="w-full px-6 py-3 bg-yellow-400 text-white rounded-lg font-medium shadow hover:bg-yellow-500">📱 手機截圖分帳</button>
+      <button onclick="location.href='mode4.html'" class="w-full px-6 py-3 bg-purple-400 text-white rounded-lg font-medium shadow hover:bg-purple-500">📊 統計匯總</button>
+      <button onclick="location.href='mode5.html'" class="w-full px-6 py-3 bg-red-400 text-white rounded-lg font-medium shadow hover:bg-red-500">💰 分帳統計</button>
+    </div>
+  </div>
+</body>
+</html>

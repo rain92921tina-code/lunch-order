@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>今日午餐點餐</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-orange-50 flex items-center justify-center min-h-screen p-4">
+  <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg">
+    <h1 class="text-2xl font-bold text-orange-500 mb-2">🍱 今日午餐登記</h1>
+    <p class="text-xs text-gray-500 mb-4" id="menuDate">載入中...</p>
+
+    <div class="mb-4">
+      <label class="block text-sm font-bold text-gray-700 mb-1">你的名字</label>
+      <input type="text" id="nameInput" placeholder="請輸入姓名" class="w-full p-2 border rounded" />
+    </div>
+
+    <div class="mb-4">
+      <label class="block text-sm font-bold text-gray-700 mb-1">選擇品項</label>
+      <div class="max-h-72 overflow-y-auto border rounded">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="bg-gray-100 border-b">
+              <th class="p-2">餐點</th>
+              <th class="p-2">單價</th>
+              <th class="p-2 text-center">選擇</th>
+            </tr>
+          </thead>
+          <tbody id="menuList">
+            <tr><td colspan="3" class="p-4 text-center text-gray-400">正在讀取今日菜單...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <button id="submitBtn" class="w-full py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700">送出訂單</button>
+    <div id="result" class="text-center font-bold text-green-600 mt-3"></div>
+  </div>
+
+  <script type="module">
+    import { db } from "./firebase.js";
+    import { doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("menuDate").innerText = `開團日期：${today}`;
+
+    // 自動讀取今日菜單
+    async function loadMenu() {
+      try {
+        const docSnap = await getDoc(doc(db, "daily_menus", today));
+        if (!docSnap.exists()) {
+          document.getElementById("menuList").innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-400">團主尚未上傳今日菜單！</td></tr>`;
+          return;
+        }
+
+        const items = docSnap.data().items || [];
+        let html = "";
+        items.forEach(item => {
+          html += `<tr class="border-b">
+            <td class="p-2">${item.name}</td>
+            <td class="p-2">$${item.price}</td>
+            <td class="p-2 text-center">
+              <input type="checkbox" class="item" data-name="${item.name}" data-price="${item.price}">
+            </td>
+          </tr>`;
+        });
+        document.getElementById("menuList").innerHTML = html;
+      } catch (err) {
+        document.getElementById("menuList").innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-500">載入失敗：${err.message}</td></tr>`;
+      }
+    }
+
+    loadMenu();
+
+    // 同事送出點餐
+    document.getElementById("submitBtn").addEventListener("click", async () => {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) return alert("請輸入姓名！");
+
+      const items = [];
+      document.querySelectorAll(".item:checked").forEach(cb => {
+        items.push({ name: cb.dataset.name, price: parseInt(cb.dataset.price) });
+      });
+
+      if (items.length === 0) return alert("請至少勾選一項餐點！");
+
+      try {
+        await addDoc(collection(db, "orders"), {
+          person: name,
+          items,
+          date: today,
+          timestamp: new Date().toISOString()
+        });
+
+        document.getElementById("result").innerHTML = `✔ ${name} 點餐成功！`;
+        document.getElementById("nameInput").value = "";
+        document.querySelectorAll(".item:checked").forEach(cb => cb.checked = false);
+      } catch (err) {
+        alert("送出失敗：" + err.message);
+      }
+    });
+  </script>
+</body>
+</html>

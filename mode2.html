@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>外送群組明細分帳</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50 flex items-center justify-center min-h-screen p-4">
+  <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-2xl font-bold text-blue-500">🍔 外送群組明細分帳</h1>
+      <button onclick="location.href='index.html'" class="text-sm px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">回首頁</button>
+    </div>
+
+    <!-- 步驟 1: 貼上文字 -->
+    <div class="mb-4">
+      <label class="block text-sm font-bold text-gray-700 mb-1">1. 貼上群組點餐文字</label>
+      <textarea id="groupText" rows="4" class="w-full p-2 border rounded text-sm placeholder-gray-400" placeholder="例如：&#10;品項A - 名字1&#10;品項B - 名字2"></textarea>
+    </div>
+
+    <!-- 步驟 2: 付款人與收據 -->
+    <div class="mb-4 p-4 border rounded-lg bg-blue-50/50">
+      <label class="block text-sm font-bold text-gray-700 mb-1">2. 今日付款人 (墊款人)</label>
+      <input type="text" id="payerInput" placeholder="請輸入付款人姓名" class="w-full p-2 border rounded mb-3" />
+
+      <label class="block text-sm font-bold text-gray-700 mb-1">3. 上傳外送收據截圖 (含單價與附加費)</label>
+      <input type="file" id="uploadBtn" accept="image/*" class="w-full text-sm mb-4" />
+
+      <button type="button" id="oneClickBtn" class="w-full py-3 bg-blue-600 text-white rounded-lg font-bold shadow hover:bg-blue-700 transition">
+        ⚡ AI 一鍵解析、比對單價並平攤分帳
+      </button>
+      <div id="aiStatus" class="text-sm text-gray-600 mt-2 font-medium hidden text-center">處理中...</div>
+    </div>
+
+    <!-- 步驟 3: 顯示結果 -->
+    <div id="resultBox" class="border-t pt-4 hidden">
+      <h3 class="font-bold text-gray-800 mb-2">📊 結算明細 (含附加費/折扣平攤)：</h3>
+      <div id="calcSummary" class="text-sm text-gray-700 bg-gray-50 p-3 rounded mb-3 space-y-1"></div>
+      <button type="button" id="copyMsgBtn" class="w-full py-2 bg-green-600 text-white rounded text-sm font-bold hover:bg-green-700 transition">📋 複製分帳結果發 LINE 群組</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from "./firebase.js";
+    import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // 你的專屬金鑰
+    const API_KEY = "AQ.Ab8RN6KZ3gCdjgbtNPVjl8ufctWw13hpvXdy-uPa3SjdGUvO7A";
+    const today = new Date().toISOString().split("T")[0];
+    let shareMessage = "";
+
+    document.getElementById("oneClickBtn").addEventListener("click", async () => {
+      const rawChat = document.getElementById("groupText").value.trim();
+      const payer = document.getElementById("payerInput").value.trim();
+      const fileInput = document.getElementById("uploadBtn");
+      const statusDiv = document.getElementById("aiStatus");
+
+      if (!rawChat) return alert("請貼上群組點餐文字！");
+      if (!payer) return alert("請輸入付款人！");
+      if (!fileInput.files[0]) return alert("請上傳外送截圖！");
+
+      statusDiv.classList.remove("hidden");
+      statusDiv.innerText = "⏳ AI 正在比對明細與單價，請稍候...";
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64Image = reader.result.split(",")[1];
+          const prompt = `
+請分析以下【群組點餐文字】與【外送收據截圖】：
+
+【群組點餐文字】：
+"""
+${rawChat}
+"""
+
+任務要求：
+1. 每行格式通常為「品項 - 姓名」或「姓名 - 品項」，請自動辨認誰是人名、什麼是餐點。
+2. 文字若無單價，請在【外送截圖】中搜尋最相符的餐點品項，並抓取其單價 (數字)。
+3. 從截圖中辨認外送運費 (deliveryFee)、服務費 (serviceFee)、折扣減免 (discount)。無則填 0。
+4. 輸出標準純 JSON 格式，不要包含任何 Markdown 標記：
+{
+  "orders": [
+    {"person": "姓名", "item": "品項名稱", "price": 單價數值}
+  ],
+  "deliveryFee": 0,
+  "serviceFee": 0,
+  "discount": 0
+}
+`;
+
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: prompt },
+                  { inline_data: { mime_type: fileInput.files[0].type || "image/png", data: base64Image } }
+                ]
+              }],
+              generationConfig: { response_mime_type: "application/json" }
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.error) {
+            throw new Error(`Google API 報錯 [${result.error.code}]: ${result.error.message}`);
+          }
+
+          if (!result.candidates || !result.candidates[0]?.content?.parts?.[0]?.text) {
+            throw new Error("AI 未能產出有效內容，請更換清晰截圖重試。");
+          }
+
+          const rawText = result.candidates[0].content.parts[0].text;
+          const parsed = JSON.parse(rawText.replace(/```json|```/g, "").trim());
+
+          // 1. 餐點小計
+          let people = {};
+          let itemDetails = {};
+          (parsed.orders || []).forEach(o => {
+            const price = parseInt(o.price) || 0;
+            if (!people[o.person]) {
+              people[o.person] = 0;
+              itemDetails[o.person] = [];
+            }
+            people[o.person] += price;
+            itemDetails[o.person].push(`${o.item}($${price})`);
+          });
+
+          const personKeys = Object.keys(people);
+          const count = personKeys.length;
+          if (count === 0) throw new Error("未能識別出點餐名單，請檢查文字內容。");
+
+          // 2. 附加費平攤與尾差平衡 (會計平攤)
+          const netExtra = (parseInt(parsed.deliveryFee) || 0) + (parseInt(parsed.serviceFee) || 0) - (parseInt(parsed.discount) || 0);
+          const baseExtraPerPerson = Math.floor(netExtra / count);
+          const remainder = netExtra - (baseExtraPerPerson * count);
+
+          personKeys.forEach(p => {
+            people[p] += baseExtraPerPerson;
+          });
+
+          if (people[payer] !== undefined) {
+            people[payer] += remainder;
+          } else {
+            people[personKeys[0]] += remainder;
+          }
+
+          // 3. 儲存至 Firebase
+          await addDoc(collection(db, "settlements"), {
+            payer,
+            people,
+            netExtra,
+            date: today,
+            timestamp: new Date().toISOString()
+          });
+
+          // 4. 產出對帳明細文字
+          let detailHtml = "";
+          let textMsg = `🍱 外送分帳結算 (付款人: ${payer})\n`;
+          textMsg += `──────────────\n`;
+
+          personKeys.forEach(p => {
+            detailHtml += `<div class="flex justify-between"><span>• <b>${p}</b>：${itemDetails[p].join(", ")}</span><span class="font-bold text-blue-700">$${people[p]}</span></div>`;
+            textMsg += `${p}：$${people[p]} (${itemDetails[p].join("+")})\n`;
+          });
+
+          textMsg += `──────────────\n附加/折讓淨平攤：$${netExtra} (每人 $${baseExtraPerPerson})\n請記得轉帳給 ${payer}，感謝！`;
+          shareMessage = textMsg;
+
+          document.getElementById("calcSummary").innerHTML = detailHtml + `<div class="text-xs text-gray-500 mt-2 border-t pt-2">附加費/折扣淨平攤：$${netExtra}（已平攤至應收總額）</div>`;
+          document.getElementById("resultBox").classList.remove("hidden");
+          statusDiv.innerText = "✔ 計算完成！";
+        } catch (err) {
+          console.error(err);
+          alert("執行中斷：" + err.message);
+          statusDiv.innerText = "處理失敗。";
+        }
+      };
+      reader.readAsDataURL(fileInput.files[0]);
+    });
+
+    document.getElementById("copyMsgBtn").addEventListener("click", () => {
+      navigator.clipboard.writeText(shareMessage);
+      alert("✔ 分帳結果已複製，可直接貼到 LINE！");
+    });
+  </script>
+</body>
+</html>

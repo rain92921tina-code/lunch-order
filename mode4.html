@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>統計匯總</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+  <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg text-center">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-2xl font-bold text-purple-600">📊 點餐統計匯總</h1>
+      <button onclick="location.href='index.html'" class="px-3 py-1 bg-gray-200 rounded text-sm">回首頁</button>
+    </div>
+
+    <!-- 日期切換篩選 -->
+    <div class="flex items-center justify-center gap-2 mb-4">
+      <label class="text-sm font-bold text-gray-600">選擇日期：</label>
+      <input type="date" id="dateFilter" class="border rounded p-1 text-sm" />
+    </div>
+
+    <div id="summary" class="mt-4 text-left text-gray-700 bg-gray-50 p-4 rounded border">
+      載入中...
+    </div>
+
+    <div class="mt-6 text-xs text-gray-500">
+      📢 團主請把本網址分享給同事確認今日點餐總計與明細。
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from "./firebase.js";
+    import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    let unsubscribe = null;
+    const dateInput = document.getElementById("dateFilter");
+    dateInput.value = new Date().toISOString().split("T")[0]; // 預設今日
+
+    function listenOrders(selectedDate) {
+      if (unsubscribe) unsubscribe();
+
+      const q = query(collection(db, "orders"), where("date", "==", selectedDate));
+      
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        let people = {};
+        let total = 0;
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          if (data.items && Array.isArray(data.items)) {
+            data.items.forEach(item => {
+              const cost = parseInt(item.price) || 0;
+              if (!people[data.person]) people[data.person] = 0;
+              people[data.person] += cost;
+              total += cost;
+            });
+          }
+        });
+
+        if (Object.keys(people).length === 0) {
+          document.getElementById("summary").innerHTML = `<div class="text-center text-gray-400 py-4">該日期查無點餐資料</div>`;
+          return;
+        }
+
+        let html = "<table class='w-full text-left mb-3 border-collapse'>";
+        html += "<tr class='border-b font-bold text-sm text-gray-600'><th class='pb-2'>姓名</th><th class='pb-2 text-right'>應付餐費</th></tr>";
+        Object.keys(people).forEach(p => {
+          html += `<tr class='border-b'><td class='py-2'>${p}</td><td class='py-2 text-right'>$${people[p]}</td></tr>`;
+        });
+        html += "</table>";
+        html += `<div class='text-right font-bold text-base text-purple-700'>今日應收總金額：$${total}</div>`;
+
+        document.getElementById("summary").innerHTML = html;
+      }, (error) => {
+        document.getElementById("summary").innerHTML = `<div class="text-red-500">讀取失敗：${error.message}</div>`;
+      });
+    }
+
+    // 初次載入與日期切換監聽
+    listenOrders(dateInput.value);
+    dateInput.addEventListener("change", (e) => listenOrders(e.target.value));
+  </script>
+</body>
+</html>

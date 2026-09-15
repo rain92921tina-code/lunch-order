@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>分帳統計</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+  <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg text-center">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-2xl font-bold text-red-500">💰 分帳統計結算</h1>
+      <button onclick="location.href='index.html'" class="px-3 py-1 bg-gray-200 rounded text-sm">回首頁</button>
+    </div>
+
+    <!-- 日期切換篩選 -->
+    <div class="flex items-center justify-center gap-2 mb-4">
+      <label class="text-sm font-bold text-gray-600">選擇日期：</label>
+      <input type="date" id="dateFilter" class="border rounded p-1 text-sm" />
+    </div>
+
+    <div id="settlement" class="mt-2 text-left text-gray-700 max-h-96 overflow-y-auto">
+      載入中...
+    </div>
+
+    <div class="mt-6 text-xs text-gray-500">
+      📢 同事請依下列應付金額轉帳或繳款給對應付款人。
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from "./firebase.js";
+    import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    let unsubscribe = null;
+    const dateInput = document.getElementById("dateFilter");
+    dateInput.value = new Date().toISOString().split("T")[0]; // 預設今日
+
+    function listenSettlements(selectedDate) {
+      if (unsubscribe) unsubscribe();
+
+      const q = query(collection(db, "settlements"), where("date", "==", selectedDate));
+
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+          document.getElementById("settlement").innerHTML = `<div class="text-center text-gray-400 py-4">該日期無分帳清單</div>`;
+          return;
+        }
+
+        let html = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          html += `<div class="mb-4 p-4 border rounded-lg bg-red-50/30">`;
+          html += `<div class="flex justify-between border-b pb-2 mb-2">`;
+          html += `<span class="font-bold text-red-600">墊款人：${data.payer}</span>`;
+          html += `<span class="text-xs text-gray-400">${data.timestamp ? data.timestamp.slice(11, 16) : ""}</span>`;
+          html += `</div>`;
+          html += `<table class="w-full text-sm">`;
+
+          let sheetTotal = 0;
+          Object.keys(data.people || {}).forEach(p => {
+            const amount = data.people[p];
+            sheetTotal += amount;
+            html += `<tr class="border-b border-gray-100">
+              <td class="py-1">${p}</td>
+              <td class="py-1 text-right font-medium">$${amount}</td>
+            </tr>`;
+          });
+          html += `</table>`;
+          html += `<div class="text-right font-bold text-sm text-gray-600 mt-2">結算應收總額：$${sheetTotal}</div>`;
+          html += `</div>`;
+        });
+
+        document.getElementById("settlement").innerHTML = html;
+      }, (error) => {
+        document.getElementById("settlement").innerHTML = `<div class="text-red-500">讀取失敗：${error.message}</div>`;
+      });
+    }
+
+    // 初次載入與日期切換監聽
+    listenSettlements(dateInput.value);
+    dateInput.addEventListener("change", (e) => listenSettlements(e.target.value));
+  </script>
+</body>
+</html>
