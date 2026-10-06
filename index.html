@@ -2,23 +2,76 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>午餐分帳系統入口</title>
+  <title>午餐分帳與點餐系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-r from-orange-100 via-yellow-50 to-blue-100 flex items-center justify-center min-h-screen font-sans">
-  <div class="bg-white p-8 rounded-2xl shadow-xl w-[420px] text-center">
-    <h1 class="text-3xl font-bold text-orange-500 mb-6">🍱 午餐分帳系統</h1>
-    <p class="text-gray-600 mb-6">請選擇模式：</p>
-    <div class="space-y-4">
-      <!-- 開團第一步 -->
-      <button onclick="location.href='admin_menu.html'" class="w-full px-6 py-3 bg-orange-500 text-white rounded-lg font-bold shadow hover:bg-orange-600">👑 團主開團與點餐</button>
-
-      <!-- 其他功能 -->
-      <button onclick="location.href='mode2.html'" class="w-full px-6 py-3 bg-blue-400 text-white rounded-lg font-medium shadow hover:bg-blue-500">🍔 外送群組明細</button>
-      <button onclick="location.href='mode3.html'" class="w-full px-6 py-3 bg-yellow-400 text-white rounded-lg font-medium shadow hover:bg-yellow-500">📱 手機截圖分帳</button>
-      <button onclick="location.href='mode4.html'" class="w-full px-6 py-3 bg-purple-400 text-white rounded-lg font-medium shadow hover:bg-purple-500">📊 統計匯總</button>
-      <button onclick="location.href='mode5.html'" class="w-full px-6 py-3 bg-red-400 text-white rounded-lg font-medium shadow hover:bg-red-500">💰 分帳統計</button>
+<body class="bg-slate-100 min-h-screen p-4 md:p-10 flex items-center justify-center">
+  <div class="w-full max-w-4xl bg-white p-8 md:p-12 rounded-3xl shadow-2xl border border-slate-100">
+    
+    <!-- 標題區 -->
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center justify-center p-3 bg-orange-100 rounded-2xl mb-4 shadow-sm">
+        <span class="text-4xl">🍱</span>
+      </div>
+      <h1 class="text-3xl md:text-4xl font-black text-slate-800 tracking-tight">午餐點餐與分帳系統</h1>
+      <p class="text-slate-500 mt-2 text-sm md:text-base">提供 AI 菜單辨識、自動統計品項電話叫餐、外送收據平攤對帳</p>
     </div>
+
+    <!-- 功能模式卡片區 (網頁版面排列) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      
+      <!-- 模式 1 -->
+      <a href="admin_menu.html" class="flex items-center gap-4 p-5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+        <span class="text-3xl">👑</span>
+        <div>
+          <div class="font-extrabold text-lg">團主開團與點餐</div>
+          <div class="text-xs text-orange-100 mt-0.5">上傳菜單圖片 AI 自動建立清單與點餐連結</div>
+        </div>
+      </a>
+
+      <!-- 模式 2 -->
+      <a href="mode2.html" class="flex items-center gap-4 p-5 rounded-2xl bg-blue-500 hover:bg-blue-600 text-white shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+        <span class="text-3xl">🍔</span>
+        <div>
+          <div class="font-extrabold text-lg">外送群組明細分帳</div>
+          <div class="text-xs text-blue-100 mt-0.5">貼上 LINE 點餐文字 + 收據截圖自動平攤</div>
+        </div>
+      </a>
+
+      <!-- 模式 3 -->
+      <a href="mode3.html" class="flex items-center gap-4 p-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+        <span class="text-3xl">📱</span>
+        <div>
+          <div class="font-extrabold text-lg">手機截圖分帳</div>
+          <div class="text-xs text-amber-100 mt-0.5">上傳外送 APP 訂單截圖，下拉指派點餐人</div>
+        </div>
+      </a>
+
+      <!-- 模式 4 (重頭戲：打電話訂餐品項總計) -->
+      <a href="mode4.html" class="flex items-center gap-4 p-5 rounded-2xl bg-purple-500 hover:bg-purple-600 text-white shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+        <span class="text-3xl">📊</span>
+        <div>
+          <div class="font-extrabold text-lg">統計匯總（電話叫餐）</div>
+          <div class="text-xs text-purple-100 mt-0.5">即時統計品項數量總和，打電話報餐超清楚</div>
+        </div>
+      </a>
+
+      <!-- 模式 5 (分帳統計) -->
+      <a href="mode5.html" class="md:col-span-2 flex items-center justify-center gap-4 p-5 rounded-2xl bg-rose-500 hover:bg-rose-600 text-white shadow-md hover:shadow-lg transition transform hover:-translate-y-0.5">
+        <span class="text-3xl">💰</span>
+        <div class="text-left md:text-center">
+          <div class="font-extrabold text-lg">分帳統計明細</div>
+          <div class="text-xs text-rose-100 mt-0.5">查詢墊款人結算紀錄、附加費淨平攤與應轉帳對帳清單</div>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- 頁尾說明 -->
+    <div class="mt-8 pt-6 border-t border-slate-100 text-center text-xs text-slate-400">
+      午餐小幫手 · 讓辦公室訂餐算帳更輕鬆
+    </div>
+
   </div>
 </body>
 </html>
