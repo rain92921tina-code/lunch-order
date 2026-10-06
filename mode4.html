@@ -2,28 +2,82 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>統計匯總</title>
+  <title>今日點餐統計與品項總計</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-  <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg text-center">
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold text-purple-600">📊 點餐統計匯總</h1>
-      <button onclick="location.href='index.html'" class="px-3 py-1 bg-gray-200 rounded text-sm">回首頁</button>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+  <div class="max-w-5xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-xl">
+    
+    <!-- 頂部標題與工具列 -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 mb-6">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-purple-700">📊 今日點餐統計與電話訂餐總表</h1>
+        <p class="text-sm text-gray-500 mt-1">即時同步最新點餐，提供打電話叫餐匯總與每人應收費用明細</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <label class="text-sm font-bold text-gray-700">日期：</label>
+        <input type="date" id="dateFilter" class="border rounded-lg p-2 text-sm font-semibold bg-gray-50 focus:ring-2 focus:ring-purple-400 outline-none" />
+        <button onclick="location.href='index.html'" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-bold transition">回首頁</button>
+      </div>
     </div>
 
-    <!-- 日期切換篩選 -->
-    <div class="flex items-center justify-center gap-2 mb-4">
-      <label class="text-sm font-bold text-gray-600">選擇日期：</label>
-      <input type="date" id="dateFilter" class="border rounded p-1 text-sm" />
-    </div>
+    <!-- 內容區域 -->
+    <div id="contentLoading" class="text-center py-12 text-gray-500 font-medium">資料載入中...</div>
+    
+    <div id="mainContainer" class="hidden space-y-6">
+      <!-- 區塊 1：打電話訂餐專用（品項加總） -->
+      <div class="bg-purple-50 border-2 border-purple-200 rounded-xl p-5 shadow-sm">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-lg md:text-xl font-bold text-purple-900 flex items-center gap-2">
+            📞 1. 電話訂餐品項總計（直接看這區打電話）
+          </h2>
+          <span id="totalItemsCountBadge" class="bg-purple-600 text-white text-xs px-2.5 py-1 rounded-full font-bold">共 0 份</span>
+        </div>
+        <div class="overflow-x-auto bg-white rounded-lg border">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-purple-100 text-purple-900 text-sm">
+                <th class="p-3 font-bold">餐點品項名稱</th>
+                <th class="p-3 font-bold text-center">單價</th>
+                <th class="p-3 font-bold text-center">數量</th>
+                <th class="p-3 font-bold text-right">小計</th>
+              </tr>
+            </thead>
+            <tbody id="itemSummaryBody" class="text-sm divide-y"></tbody>
+          </table>
+        </div>
+        <div class="flex justify-between items-center mt-3 pt-2 text-sm font-bold text-purple-900">
+          <span>全體品項合計</span>
+          <span id="totalAmountText" class="text-xl text-purple-700 font-extrabold">$0</span>
+        </div>
+      </div>
 
-    <div id="summary" class="mt-4 text-left text-gray-700 bg-gray-50 p-4 rounded border">
-      載入中...
-    </div>
+      <!-- 區塊 2：各人應付金額與明細（收錢對帳專用） -->
+      <div class="bg-gray-50 border rounded-xl p-5 shadow-sm">
+        <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+          💰 2. 每人點餐明細與應付費用（收錢對帳）
+        </h2>
+        <div class="overflow-x-auto bg-white rounded-lg border">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-100 text-gray-700 text-sm">
+                <th class="p-3 font-bold w-1/4">姓名</th>
+                <th class="p-3 font-bold w-2/4">點餐內容明細</th>
+                <th class="p-3 font-bold text-right w-1/4">應付金額</th>
+              </tr>
+            </thead>
+            <tbody id="peopleSummaryBody" class="text-sm divide-y"></tbody>
+          </table>
+        </div>
+      </div>
 
-    <div class="mt-6 text-xs text-gray-500">
-      📢 團主請把本網址分享給同事確認今日點餐總計與明細。
+      <!-- 底部提醒與快捷鍵 -->
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+        <span class="text-xs text-gray-500">提示：此頁面支援實時自動刷新，同事送出後會立即更新。</span>
+        <button type="button" id="copyCallOrderBtn" class="w-full sm:w-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-sm shadow transition">
+          📋 複製訂餐品項清單（方便傳店家 LINE）
+        </button>
+      </div>
     </div>
   </div>
 
@@ -33,49 +87,119 @@
 
     let unsubscribe = null;
     const dateInput = document.getElementById("dateFilter");
-    dateInput.value = new Date().toISOString().split("T")[0]; // 預設今日
+    dateInput.value = new Date().toISOString().split("T")[0];
+
+    let currentItemSummary = [];
+    let currentTotal = 0;
 
     function listenOrders(selectedDate) {
       if (unsubscribe) unsubscribe();
 
+      document.getElementById("contentLoading").classList.remove("hidden");
+      document.getElementById("mainContainer").classList.add("hidden");
+
       const q = query(collection(db, "orders"), where("date", "==", selectedDate));
       
       unsubscribe = onSnapshot(q, (snapshot) => {
-        let people = {};
-        let total = 0;
+        document.getElementById("contentLoading").classList.add("hidden");
+        document.getElementById("mainContainer").classList.remove("hidden");
+
+        let itemsCountMap = {};
+        let peopleMap = {};
+        let grandTotal = 0;
+        let totalItemsQuantity = 0;
 
         snapshot.forEach(doc => {
           const data = doc.data();
+          const person = data.person || "未知名稱";
+          
+          if (!peopleMap[person]) {
+            peopleMap[person] = { items: [], total: 0 };
+          }
+
           if (data.items && Array.isArray(data.items)) {
             data.items.forEach(item => {
-              const cost = parseInt(item.price) || 0;
-              if (!people[data.person]) people[data.person] = 0;
-              people[data.person] += cost;
-              total += cost;
+              const name = item.name;
+              const price = parseInt(item.price) || 0;
+
+              peopleMap[person].items.push(`${name} ($${price})`);
+              peopleMap[person].total += price;
+
+              if (!itemsCountMap[name]) {
+                itemsCountMap[name] = { count: 0, price: price };
+              }
+              itemsCountMap[name].count += 1;
+              totalItemsQuantity += 1;
+              grandTotal += price;
             });
           }
         });
 
-        if (Object.keys(people).length === 0) {
-          document.getElementById("summary").innerHTML = `<div class="text-center text-gray-400 py-4">該日期查無點餐資料</div>`;
+        const itemNames = Object.keys(itemsCountMap);
+        const personNames = Object.keys(peopleMap);
+
+        if (personNames.length === 0) {
+          document.getElementById("mainContainer").innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+              <p class="text-base font-bold">該日期（${selectedDate}）目前尚無人點餐。</p>
+            </div>
+          `;
           return;
         }
 
-        let html = "<table class='w-full text-left mb-3 border-collapse'>";
-        html += "<tr class='border-b font-bold text-sm text-gray-600'><th class='pb-2'>姓名</th><th class='pb-2 text-right'>應付餐費</th></tr>";
-        Object.keys(people).forEach(p => {
-          html += `<tr class='border-b'><td class='py-2'>${p}</td><td class='py-2 text-right'>$${people[p]}</td></tr>`;
-        });
-        html += "</table>";
-        html += `<div class='text-right font-bold text-base text-purple-700'>今日應收總金額：$${total}</div>`;
+        currentTotal = grandTotal;
+        currentItemSummary = itemNames.map(name => ({
+          name,
+          count: itemsCountMap[name].count,
+          price: itemsCountMap[name].price,
+          subtotal: itemsCountMap[name].count * itemsCountMap[name].price
+        }));
 
-        document.getElementById("summary").innerHTML = html;
+        // 1. 電話訂餐品項加總
+        let itemHtml = "";
+        currentItemSummary.forEach(item => {
+          itemHtml += `
+            <tr class="hover:bg-purple-50/50">
+              <td class="p-3 font-semibold text-gray-800">${item.name}</td>
+              <td class="p-3 text-center text-gray-600">$${item.price}</td>
+              <td class="p-3 text-center font-extrabold text-purple-700 text-base">x ${item.count}</td>
+              <td class="p-3 text-right font-bold text-gray-800">$${item.subtotal}</td>
+            </tr>
+          `;
+        });
+        document.getElementById("itemSummaryBody").innerHTML = itemHtml;
+        document.getElementById("totalItemsCountBadge").innerText = `共 ${totalItemsQuantity} 份餐點`;
+        document.getElementById("totalAmountText").innerText = `$${grandTotal}`;
+
+        // 2. 個人應收明細
+        let peopleHtml = "";
+        personNames.forEach(p => {
+          peopleHtml += `
+            <tr class="hover:bg-gray-50">
+              <td class="p-3 font-bold text-gray-800">${p}</td>
+              <td class="p-3 text-gray-600 text-xs sm:text-sm">${peopleMap[p].items.join("、 ")}</td>
+              <td class="p-3 text-right font-extrabold text-orange-600 text-base">$${peopleMap[p].total}</td>
+            </tr>
+          `;
+        });
+        document.getElementById("peopleSummaryBody").innerHTML = peopleHtml;
+
       }, (error) => {
-        document.getElementById("summary").innerHTML = `<div class="text-red-500">讀取失敗：${error.message}</div>`;
+        document.getElementById("contentLoading").innerHTML = `<div class="text-red-500 font-bold">讀取失敗：${error.message}</div>`;
       });
     }
 
-    // 初次載入與日期切換監聽
+    document.getElementById("copyCallOrderBtn").addEventListener("click", () => {
+      if (currentItemSummary.length === 0) return alert("目前尚無訂單可複製！");
+      let msg = `📞 【今日訂餐品項總清單】\n`;
+      currentItemSummary.forEach(i => {
+        msg += `• ${i.name} x ${i.count} (單價 $${i.price})\n`;
+      });
+      msg += `─────────────\n總計共 ${currentItemSummary.reduce((a,c)=>a+c.count, 0)} 份，總金額：$${currentTotal} 元`;
+      navigator.clipboard.writeText(msg);
+      alert("✔ 已複製訂餐品項總結！可直接傳給店家或在電話中核對！");
+    });
+
     listenOrders(dateInput.value);
     dateInput.addEventListener("change", (e) => listenOrders(e.target.value));
   </script>

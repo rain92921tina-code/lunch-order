@@ -104,8 +104,8 @@
         document.getElementById("contentLoading").classList.add("hidden");
         document.getElementById("mainContainer").classList.remove("hidden");
 
-        let itemsCountMap = {}; // { "排骨飯": { count: 3, price: 100 } }
-        let peopleMap = {};     // { "小陳": { items: ["排骨飯($100)"], total: 100 } }
+        let itemsCountMap = {};
+        let peopleMap = {};
         let grandTotal = 0;
         let totalItemsQuantity = 0;
 
@@ -122,11 +122,11 @@
               const name = item.name;
               const price = parseInt(item.price) || 0;
 
-              // 統計每人明細
+              // 每人明細
               peopleMap[person].items.push(`${name} ($${price})`);
               peopleMap[person].total += price;
 
-              // 統計所有品項數量
+              // 品項加總
               if (!itemsCountMap[name]) {
                 itemsCountMap[name] = { count: 0, price: price };
               }
@@ -157,7 +157,7 @@
           subtotal: itemsCountMap[name].count * itemsCountMap[name].price
         }));
 
-        // 渲染 1. 品項總計
+        // 1. 渲染電話訂餐品項加總
         let itemHtml = "";
         currentItemSummary.forEach(item => {
           itemHtml += `
@@ -173,7 +173,7 @@
         document.getElementById("totalItemsCountBadge").innerText = `共 ${totalItemsQuantity} 份餐點`;
         document.getElementById("totalAmountText").innerText = `$${grandTotal}`;
 
-        // 渲染 2. 個人明細
+        // 2. 渲染每人應收明細
         let peopleHtml = "";
         personNames.forEach(p => {
           peopleHtml += `
@@ -191,7 +191,6 @@
       });
     }
 
-    // 複製訂餐品項按鈕（方便打字或傳 LINE 給店家）
     document.getElementById("copyCallOrderBtn").addEventListener("click", () => {
       if (currentItemSummary.length === 0) return alert("目前尚無訂單可複製！");
       let msg = `📞 【今日訂餐品項總清單】\n`;
