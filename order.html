@@ -2,39 +2,75 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>今日午餐點餐</title>
+  <title>同事線上點餐</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-orange-50 flex items-center justify-center min-h-screen p-4">
-  <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg">
-    <h1 class="text-2xl font-bold text-orange-500 mb-2">🍱 今日午餐登記</h1>
-    <p class="text-xs text-gray-500 mb-4" id="menuDate">載入中...</p>
-
-    <div class="mb-4">
-      <label class="block text-sm font-bold text-gray-700 mb-1">你的名字</label>
-      <input type="text" id="nameInput" placeholder="請輸入姓名" class="w-full p-2 border rounded" />
+<body class="bg-gray-50 min-h-screen p-4 md:p-8 flex justify-center items-start">
+  <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-4xl">
+    
+    <!-- 頂部標題與快捷按鈕 -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4 mb-6">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-blue-600">🍴 同事今日點餐</h1>
+        <p class="text-xs sm:text-sm text-gray-500 mt-1">勾選餐點後送出即可，可隨時查看大家已點項目</p>
+      </div>
+      <div class="flex gap-2 w-full sm:w-auto">
+        <button onclick="location.href='mode5.html'" class="flex-1 sm:flex-none px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold rounded-lg text-sm transition">
+          📊 查看大家點了什麼
+        </button>
+        <button onclick="location.href='index.html'" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition">
+          首頁
+        </button>
+      </div>
     </div>
 
-    <div class="mb-4">
-      <label class="block text-sm font-bold text-gray-700 mb-1">選擇品項</label>
-      <div class="max-h-72 overflow-y-auto border rounded">
+    <!-- 步驟 1：輸入姓名 -->
+    <div class="mb-6">
+      <label class="block text-sm font-bold text-gray-700 mb-2">1. 點餐人姓名：</label>
+      <input type="text" id="personName" placeholder="請輸入您的姓名（例如：小陳）" class="w-full p-3 border rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-400 outline-none text-base" />
+    </div>
+
+    <!-- 步驟 2：菜單清單 -->
+    <div class="mb-6">
+      <div class="flex justify-between items-center mb-2">
+        <label class="block text-sm font-bold text-gray-700">2. 選擇餐點（今日菜單）：</label>
+        <span id="selectedCountText" class="text-xs text-blue-600 font-bold">已選擇 0 樣</span>
+      </div>
+      <div id="loadingMenu" class="text-center py-8 text-gray-400">菜單載入中...</div>
+      <div id="menuContainer" class="hidden overflow-x-auto border rounded-xl max-h-96 overflow-y-auto">
         <table class="w-full text-left text-sm">
-          <thead>
-            <tr class="bg-gray-100 border-b">
-              <th class="p-2">餐點</th>
-              <th class="p-2">單價</th>
-              <th class="p-2 text-center">選擇</th>
+          <thead class="bg-gray-100 border-b sticky top-0">
+            <tr>
+              <th class="p-3 font-bold text-gray-700">餐點品項</th>
+              <th class="p-3 font-bold text-gray-700 text-center">價格</th>
+              <th class="p-3 font-bold text-gray-700 text-center">選擇</th>
             </tr>
           </thead>
-          <tbody id="menuList">
-            <tr><td colspan="3" class="p-4 text-center text-gray-400">正在讀取今日菜單...</td></tr>
-          </tbody>
+          <tbody id="menuListBody" class="divide-y"></tbody>
         </table>
       </div>
     </div>
 
-    <button id="submitBtn" class="w-full py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700">送出訂單</button>
-    <div id="result" class="text-center font-bold text-green-600 mt-3"></div>
+    <!-- 總額與送出按鈕 -->
+    <div class="border-t pt-4">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-base font-bold text-gray-700">個人點餐總額：</span>
+        <span id="myTotal" class="text-2xl font-extrabold text-blue-600">$0</span>
+      </div>
+      <button type="button" id="submitOrderBtn" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-base shadow transition">
+        🚀 確認送出點餐
+      </button>
+    </div>
+
+    <!-- 送出成功後彈出的結果區 -->
+    <div id="successBox" class="mt-6 p-5 bg-green-50 border border-green-200 rounded-xl hidden text-center">
+      <div class="text-green-700 font-extrabold text-lg mb-1">🎉 點餐已成功送出！</div>
+      <p class="text-xs text-gray-600 mb-4">已記錄至今日點餐清單，您現在可以直接點擊下方按鈕看大家點了什麼：</p>
+      <button onclick="location.href='mode5.html'" class="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-base shadow transition">
+        📊 查看大家點了什麼（前往匯總表）
+      </button>
+    </div>
+
   </div>
 
   <script type="module">
@@ -42,63 +78,84 @@
     import { doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const today = new Date().toISOString().split("T")[0];
-    document.getElementById("menuDate").innerText = `開團日期：${today}`;
 
-    // 自動讀取今日菜單
-    async function loadMenu() {
+    async function loadTodayMenu() {
       try {
-        const docSnap = await getDoc(doc(db, "daily_menus", today));
-        if (!docSnap.exists()) {
-          document.getElementById("menuList").innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-400">團主尚未上傳今日菜單！</td></tr>`;
-          return;
-        }
+        const docRef = doc(db, "daily_menus", today);
+        const docSnap = await getDoc(docRef);
 
-        const items = docSnap.data().items || [];
-        let html = "";
-        items.forEach(item => {
-          html += `<tr class="border-b">
-            <td class="p-2">${item.name}</td>
-            <td class="p-2">$${item.price}</td>
-            <td class="p-2 text-center">
-              <input type="checkbox" class="item" data-name="${item.name}" data-price="${item.price}">
-            </td>
-          </tr>`;
-        });
-        document.getElementById("menuList").innerHTML = html;
-      } catch (err) {
-        document.getElementById("menuList").innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-500">載入失敗：${err.message}</td></tr>`;
+        document.getElementById("loadingMenu").classList.add("hidden");
+
+        if (docSnap.exists() && docSnap.data().items) {
+          const items = docSnap.data().items;
+          let html = "";
+          items.forEach(item => {
+            html += `
+              <tr class="hover:bg-blue-50/50">
+                <td class="p-3 font-semibold text-gray-800">${item.name}</td>
+                <td class="p-3 text-center text-gray-700 font-bold">$${item.price}</td>
+                <td class="p-3 text-center">
+                  <input type="checkbox" class="order-cb w-5 h-5 text-blue-600 rounded cursor-pointer" data-name="${item.name}" data-price="${item.price}" />
+                </td>
+              </tr>
+            `;
+          });
+          document.getElementById("menuListBody").innerHTML = html;
+          document.getElementById("menuContainer").classList.remove("hidden");
+
+          // 監聽勾選改變總金額
+          document.querySelectorAll(".order-cb").forEach(cb => {
+            cb.addEventListener("change", calcTotal);
+          });
+        } else {
+          document.getElementById("loadingMenu").innerHTML = `<div class="text-amber-600 font-bold">團主尚未開團或建立今日菜單！請通知團主開團。</div>`;
+          document.getElementById("loadingMenu").classList.remove("hidden");
+        }
+      } catch (e) {
+        document.getElementById("loadingMenu").innerHTML = `<div class="text-red-500 font-bold">讀取菜單失敗：${e.message}</div>`;
+        document.getElementById("loadingMenu").classList.remove("hidden");
       }
     }
 
-    loadMenu();
+    function calcTotal() {
+      let sum = 0;
+      let count = 0;
+      document.querySelectorAll(".order-cb:checked").forEach(cb => {
+        sum += parseInt(cb.dataset.price) || 0;
+        count++;
+      });
+      document.getElementById("myTotal").innerText = `$${sum}`;
+      document.getElementById("selectedCountText").innerText = `已選擇 ${count} 樣`;
+    }
 
-    // 同事送出點餐
-    document.getElementById("submitBtn").addEventListener("click", async () => {
-      const name = document.getElementById("nameInput").value.trim();
-      if (!name) return alert("請輸入姓名！");
+    document.getElementById("submitOrderBtn").addEventListener("click", async () => {
+      const name = document.getElementById("personName").value.trim();
+      if (!name) return alert("請輸入您的姓名！");
 
-      const items = [];
-      document.querySelectorAll(".item:checked").forEach(cb => {
-        items.push({ name: cb.dataset.name, price: parseInt(cb.dataset.price) });
+      const selected = [];
+      document.querySelectorAll(".order-cb:checked").forEach(cb => {
+        selected.push({ name: cb.dataset.name, price: parseInt(cb.dataset.price) });
       });
 
-      if (items.length === 0) return alert("請至少勾選一項餐點！");
+      if (selected.length === 0) return alert("請至少勾選一項餐點！");
 
       try {
         await addDoc(collection(db, "orders"), {
           person: name,
-          items,
+          items: selected,
           date: today,
           timestamp: new Date().toISOString()
         });
 
-        document.getElementById("result").innerHTML = `✔ ${name} 點餐成功！`;
-        document.getElementById("nameInput").value = "";
-        document.querySelectorAll(".item:checked").forEach(cb => cb.checked = false);
+        document.getElementById("successBox").classList.remove("hidden");
+        document.getElementById("successBox").scrollIntoView({ behavior: "smooth" });
+        alert(`✔ ${name} 點餐已送出！`);
       } catch (err) {
         alert("送出失敗：" + err.message);
       }
     });
+
+    loadTodayMenu();
   </script>
 </body>
 </html>
